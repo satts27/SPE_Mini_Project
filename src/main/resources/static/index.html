@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f7fb">
+    <title>Calculator | SPE Mini Project</title>
+    <style>
+        :root {
+            color-scheme: light;
+            font-family: Inter, "Segoe UI", Arial, sans-serif;
+            color: #182230;
+            background: #f5f7fb;
+            font-synthesis: none;
+            text-rendering: optimizeLegibility;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+        }
+
+        main {
+            width: min(100%, 440px);
+            padding: 36px;
+            border: 1px solid #e5eaf2;
+            border-radius: 20px;
+            background: #fff;
+            box-shadow: 0 20px 50px rgb(24 34 48 / 8%);
+        }
+
+        .eyebrow {
+            margin: 0 0 8px;
+            color: #5265d8;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 2rem;
+            letter-spacing: -0.04em;
+        }
+
+        .intro {
+            margin: 10px 0 28px;
+            color: #657184;
+            line-height: 1.5;
+        }
+
+        .inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        label {
+            display: grid;
+            gap: 8px;
+            color: #445064;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        input {
+            width: 100%;
+            min-width: 0;
+            padding: 12px 13px;
+            border: 1px solid #d9e0eb;
+            border-radius: 10px;
+            color: #182230;
+            font: inherit;
+        }
+
+        input:focus-visible,
+        button:focus-visible {
+            outline: 3px solid rgb(82 101 216 / 28%);
+            outline-offset: 2px;
+        }
+
+        .operations {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            min-height: 46px;
+            border: 0;
+            border-radius: 10px;
+            background: #5265d8;
+            color: #fff;
+            cursor: pointer;
+            font: inherit;
+            font-size: 1.05rem;
+            font-weight: 700;
+            transition: background 120ms ease, transform 120ms ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            background: #4052c1;
+        }
+
+        button:disabled {
+            cursor: wait;
+            opacity: 0.65;
+        }
+
+        .result {
+            min-height: 100px;
+            margin-top: 22px;
+            padding: 16px;
+            border-radius: 12px;
+            background: #f5f7fb;
+        }
+
+        .result-label {
+            display: block;
+            margin-bottom: 7px;
+            color: #657184;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        #result-value {
+            overflow-wrap: anywhere;
+            font-size: 1.65rem;
+            font-weight: 700;
+        }
+
+        #message {
+            min-height: 1.25em;
+            margin: 12px 0 0;
+            color: #b42318;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 420px) {
+            main {
+                padding: 26px 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <p class="eyebrow">SPE Mini Project</p>
+    <h1>Calculator</h1>
+    <p class="intro">Enter two numbers and choose an operation to calculate.</p>
+    <form id="calculator-form">
+        <div class="inputs">
+            <label for="operand-a">
+                First number
+                <input id="operand-a" name="a" type="number" step="any" placeholder="e.g. 12.5" required>
+            </label>
+            <label for="operand-b">
+                Second number
+                <input id="operand-b" name="b" type="number" step="any" placeholder="e.g. 4" required>
+            </label>
+        </div>
+        <div class="operations" aria-label="Choose an operation">
+            <button type="submit" data-operation="add" aria-label="Add">+</button>
+            <button type="submit" data-operation="subtract" aria-label="Subtract">−</button>
+            <button type="submit" data-operation="multiply" aria-label="Multiply">×</button>
+            <button type="submit" data-operation="divide" aria-label="Divide">÷</button>
+        </div>
+    </form>
+    <section class="result" aria-live="polite" aria-atomic="true">
+        <span class="result-label">Result</span>
+        <output id="result-value" for="operand-a operand-b">—</output>
+    </section>
+    <p id="message" role="status"></p>
+</main>
+<script>
+    const form = document.querySelector("#calculator-form");
+    const resultValue = document.querySelector("#result-value");
+    const message = document.querySelector("#message");
+    const operationButtons = form.querySelectorAll("[data-operation]");
+
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const operation = event.submitter?.dataset.operation;
+        if (!operation || !form.reportValidity()) {
+            return;
+        }
+
+        const params = new URLSearchParams(new FormData(form));
+        const button = event.submitter;
+        operationButtons.forEach((item) => {
+            item.disabled = true;
+        });
+        message.textContent = "";
+
+        try {
+            const response = await fetch(`/api/v1/${operation}?${params}`);
+            const body = await response.json();
+            if (!response.ok) {
+                throw new Error(body.message || "The calculation could not be completed.");
+            }
+            resultValue.textContent = body.result;
+        } catch (error) {
+            message.textContent = error instanceof Error
+                ? error.message
+                : "Unable to reach the calculator service. Please try again.";
+        } finally {
+            operationButtons.forEach((item) => {
+                item.disabled = false;
+            });
+            button.focus();
+        }
+    });
+</script>
+</body>
+</html>
