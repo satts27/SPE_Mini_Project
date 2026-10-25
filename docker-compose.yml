@@ -1,0 +1,45 @@
+name: spe-calculator
+
+services:
+  calculator:
+    image: ${CALCULATOR_IMAGE:-spe-calculator:local}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      SERVER_PORT: 8081
+    expose:
+      - "8081"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 20s
+      retries: 3
+    networks:
+      - calculator-network
+    restart: unless-stopped
+
+  proxy:
+    image: spe-calculator-proxy:local
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    depends_on:
+      calculator:
+        condition: service_healthy
+    ports:
+      - "${PROXY_PORT:-8082}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+    networks:
+      - calculator-network
+    restart: unless-stopped
+
+networks:
+  calculator-network:
+    driver: bridge
