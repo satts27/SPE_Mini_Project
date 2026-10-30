@@ -75,7 +75,7 @@ pipeline {
 
     post {
         success {
-            catchError(buildResult: null, stageResult: 'NONE') {
+            catchError(buildResult: null, stageResult: 'SUCCESS') {
                 emailext(
                     to: "${env.NOTIFICATION_EMAIL}",
                     subject: "${env.JOB_NAME} #${env.BUILD_NUMBER}: SUCCESS",
@@ -85,7 +85,7 @@ pipeline {
             }
         }
         failure {
-            catchError(buildResult: null, stageResult: 'NONE') {
+            catchError(buildResult: null, stageResult: 'SUCCESS') {
                 emailext(
                     to: "${env.NOTIFICATION_EMAIL}",
                     subject: "${env.JOB_NAME} #${env.BUILD_NUMBER}: FAILURE",
@@ -94,6 +94,8 @@ pipeline {
                 )
             }
         }
-        always { cleanWs() }
+        always {
+            echo 'Build workspace cleanup is handled by the Jenkins workspace retention policy.'
+        }
     }
 }
