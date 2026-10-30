@@ -87,7 +87,7 @@ pipeline {
                 to: "${env.NOTIFICATION_EMAIL}",
                 subject: "${env.JOB_NAME} #${env.BUILD_NUMBER}: FAILURE",
                 body: "Build: ${env.JOB_NAME}\nBuild Number: ${env.BUILD_NUMBER}\nStatus: FAILURE\nBuild URL: ${env.BUILD_URL}",
-                attachLog: true
+                attachLog: false
             )
         }
         always { cleanWs() }
