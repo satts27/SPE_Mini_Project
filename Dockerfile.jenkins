@@ -1,0 +1,10 @@
+FROM jenkins/jenkins:lts-jdk21
+
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends maven docker-cli docker-compose ca-certificates \
+    && mkdir -p /usr/local/lib/docker/cli-plugins \
+    && ln -sf /usr/bin/docker-compose /usr/local/lib/docker/cli-plugins/docker-compose \
+    && rm -rf /var/lib/apt/lists/*
+
+USER jenkins
