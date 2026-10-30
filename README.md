@@ -1,72 +1,79 @@
 # Calculator REST API
 
-A Java 21, Spring Boot, and Maven calculator service for the SPE mini-project, with a browser frontend and a Jenkins/Docker Compose delivery pipeline.
+Calculator REST API built with Java 21, Spring Boot, Maven, Docker Compose, and Jenkins.
 
-## Build and test
+## Features
+
+- Add, subtract, multiply, and divide endpoints
+- Structured HTTP 400 responses for invalid input and division by zero
+- Spring Boot Actuator health endpoint
+- JUnit 5 unit and MockMvc integration tests
+- Multi-stage Docker image
+- Docker Compose deployment with Nginx reverse proxy
+- Declarative Jenkins CI/CD pipeline
+
+## Prerequisites
+
+- Java 21
+- Maven 3
+- Docker Desktop with Docker Compose
+- Jenkins with Docker access when running the pipeline
+- Docker Hub account for publishing the application image
+
+## Run locally with Maven
 
 ```powershell
+cd S:\SPE_MiniProject
 mvn clean test
-mvn package
-```
-
-JUnit XML reports are written to `target/surefire-reports/`.
-
-## Run
-
-```powershell
 mvn spring-boot:run
 ```
 
-The API listens on `http://localhost:8081` (Jenkins uses port 8080).
-Open `http://localhost:8081` in a browser to use the calculator frontend.
+Open the application at `http://localhost:8081`.
 
-## Run with Docker Hub image
+## Run with Docker Compose
 
-The published application image is:
+```powershell
+cd S:\SPE_MiniProject
+docker compose up --build -d
+docker compose ps
+```
+
+Open:
+
+- Frontend and API through Nginx: `http://localhost:8082`
+- Calculator health endpoint: `http://localhost:8082/actuator/health`
+
+Stop the stack:
+
+```powershell
+docker compose down
+```
+
+## Run the Docker Hub image directly
+
+The Jenkins pipeline publishes the application image as:
 
 ```text
 satts27/spe-calculator:latest
 ```
 
-Run the calculator image directly and map it to port 8081:
-
 ```powershell
-docker login
+docker login -u satts27
 docker pull satts27/spe-calculator:latest
 docker run --rm -d --name spe-calculator -p 8081:8081 satts27/spe-calculator:latest
 ```
 
-Verify it:
+Verify and stop the container:
 
 ```powershell
-curl http://localhost:8081/actuator/health
-curl "http://localhost:8081/api/v1/add?a=2&b=3"
+curl.exe http://localhost:8081/actuator/health
+curl.exe "http://localhost:8081/api/v1/add?a=2&b=3"
 docker stop spe-calculator
 ```
 
-## Run with Docker Compose
-
-Docker Compose starts the calculator and Nginx reverse proxy and waits for their health checks. To build and run the local source:
-
-```powershell
-docker compose up --build -d
-docker compose ps
-```
-
-To use the Docker Hub image instead of building locally, set `CALCULATOR_IMAGE`:
-
-```powershell
-$env:CALCULATOR_IMAGE="satts27/spe-calculator:latest"
-docker compose pull calculator
-docker compose up -d --no-build
-docker compose ps
-```
-
-Open `http://localhost:8082` for the frontend and API. Jenkins uses port 8080, while the calculator listens on port 8081 only inside the Compose network. To stop the stack, run `docker compose down`.
-
 ## Publish the image to Docker Hub
 
-Use a Docker Hub access token rather than an account password. Set the Docker Hub namespace once; this repository uses `satts27`.
+Create a Docker Hub access token and use it instead of an account password.
 
 ```powershell
 docker login -u satts27
@@ -74,70 +81,97 @@ docker build -t satts27/spe-calculator:latest .
 docker push satts27/spe-calculator:latest
 ```
 
-Add a build-specific immutable tag before pushing to production:
-
-```powershell
-$tag = (Get-Date -Format 'yyyyMMdd-HHmmss')
-docker build -t "satts27/spe-calculator:$tag" .
-docker push "satts27/spe-calculator:$tag"
-```
-
-The tagged and `latest` versions should appear at `https://hub.docker.com/r/satts27/spe-calculator`.
-
-## API
-
-All calculator endpoints accept decimal query parameters `a` and `b` and return a JSON object containing the operation, operands, and result.
+Docker Hub repository:
 
 ```text
-GET http://localhost:8081/api/v1/add?a=2&b=3
-GET http://localhost:8081/api/v1/subtract?a=7&b=3
-GET http://localhost:8081/api/v1/multiply?a=2.5&b=4
-GET http://localhost:8081/api/v1/divide?a=7&b=2
-GET http://localhost:8081/actuator/health
+https://hub.docker.com/r/satts27/spe-calculator
 ```
 
-Missing or non-numeric parameters and division by zero return HTTP 400 with a JSON error response. Division results use `MathContext.DECIMAL128` precision.
+## API examples
+
+```powershell
+curl.exe "http://localhost:8082/api/v1/add?a=2&b=3"
+curl.exe "http://localhost:8082/api/v1/subtract?a=7&b=3"
+curl.exe "http://localhost:8082/api/v1/multiply?a=2.5&b=4"
+curl.exe "http://localhost:8082/api/v1/divide?a=7&b=2"
+curl.exe http://localhost:8082/actuator/health
+```
+
+The calculator endpoints accept numeric `a` and `b` query parameters and return JSON. Missing or non-numeric parameters and division by zero return HTTP 400.
+
+## Tests
+
+```powershell
+mvn clean test
+```
+
+JUnit XML reports are created in:
+
+```text
+target/surefire-reports/
+```
+
+Jenkins publishes these reports with the pipeline's `junit` step.
 
 ## Run Jenkins in Docker
 
-Jenkins itself is containerized, so setup does not depend on a locally installed Jenkins service.
+This repository includes a containerized Jenkins image.
 
 ```powershell
+cd S:\SPE_MiniProject
 docker compose -f docker-compose.jenkins.yml up -d --build
 ```
 
-Open `http://localhost:8090`, complete the initial administrator setup, install the required plugins below, and create a Pipeline job pointed at this repository. The Jenkins container mounts the Docker Engine socket and has Maven, Docker CLI, and Docker Compose available.
+Open Jenkins at:
 
-Required plugins: Git, Pipeline, Docker Pipeline, Workspace Cleanup, and Email Extension. Configure the Jenkins credentials described below.
+```text
+http://localhost:8090
+```
 
-## Jenkins pipeline
+Port 8090 is used if another Jenkins installation already owns port 8080. The mapping is controlled by `docker-compose.jenkins.yml`.
 
-The declarative `Jenkinsfile` builds and tests every branch and pull request, archives the executable JAR, and builds a Docker image. Only builds for the `main` branch push the versioned image and `latest` tag to Docker Hub and deploy the stack with Docker Compose. Deployment waits for the calculator's `/actuator/health` check and the proxy health check to pass.
+Required Jenkins plugins:
 
-### Jenkins setup
+- Git
+- Pipeline
+- GitHub Branch Source
+- Docker Pipeline
+- Email Extension
+- Workspace Cleanup
 
-1. Install the Pipeline, Git, GitHub Branch Source, Docker Pipeline, Workspace Cleanup, and Email Extension plugins.
-2. The container already provides Java 21, Maven, Docker CLI, and Docker Compose; no local agent tools or host Jenkins installation are required.
-3. Add a Jenkins **Username with password** credential with ID `dockerhub-credentials`. Use your Docker Hub username and a Docker Hub access token as the password.
-4. Create a **Multibranch Pipeline** job for this GitHub repository. Configure it to discover branches and pull requests, and ensure it loads the `Jenkinsfile` from each branch.
-5. Configure the GitHub webhook to notify Jenkins of pushes and pull requests, or configure periodic multibranch indexing as a fallback.
-6. Ensure the Jenkins agent can run Docker and Docker Compose v2, and can bind host port 8082. The deployment runs on that agent's Docker host. Jenkins itself can continue using port 8080.
-7. Configure Jenkins SMTP in **Manage Jenkins → System → E-mail Notification**:
-   - Enter SMTP server `smtp.gmail.com`, SMTP port `465`, and enable SSL.
-   - Enter Gmail credentials and a Gmail App Password in the Jenkins Mailer Advanced settings.
-   - Create a Gmail App Password from Google's account security page. Do not use your normal Gmail password or store the password in Git.
-   - Send a test email before building the pipeline. The pipeline uses the Jenkins built-in `mail()` step rather than Extended E-mail Notification.
-   - The pipeline sends success and failure notifications to `suryasatishganiga@gmail.com` by default. An optional Jenkins environment variable named `NOTIFICATION_EMAIL` can override that address.
-8. In GitHub, protect `main` by requiring pull requests before merge. Once Jenkins status checks are publishing to GitHub, require the Jenkins check before allowing a merge. Keep deployment credentials in Jenkins, never in the repository.
+## Configure Jenkins
 
-The multibranch pipeline verifies feature branches and pull requests but does not merge them. Review and merge the pull request on GitHub; the resulting `main` build is the only build that pushes and deploys. The deployed app is available at `http://localhost:8082`.
+1. Complete the Jenkins initial setup.
+2. Create a **Multibranch Pipeline** named `SPE_Mini_Project`.
+3. Add the GitHub repository URL as the branch source:
 
-## Capture the Jenkins success screenshot
+   ```text
+   https://github.com/satts27/SPE_Mini_Project.git
+   ```
 
-After starting a build:
+4. Add a Jenkins **Username with password** credential with ID `dockerhub-credentials`. Use the Docker Hub username and an access token.
+5. Configure the SMTP settings under **Manage Jenkins → System → E-mail Notification**:
+   - SMTP server: `smtp.gmail.com`
+   - Port: `587`
+   - Enable STARTTLS
+   - Enable SMTP authentication
+   - Use a Gmail address and Gmail App Password
+6. Send a Jenkins test email and verify delivery.
+7. Scan the repository and select **Build Now** on the `main` branch.
 
-1. Open the build page in Jenkins at **Dashboard → SPE_Mini_Project → main → Build History → green build number**.
-2. Select **Stage View** to show the green pipeline stages, or open **Console Output** for the full successful log.
-3. Press `Windows + Shift + S`, drag over the Jenkins window, and save the PNG through the Snipping Tool.
-4. Include the build number and each stage in the screenshot. A successful pipeline run may show all stages in green or blue depending on the Jenkins theme.
-5. Keep a second screenshot of the received email from `Suryasatishganiga@gmail.com`'s inbox, using the Jenkins build subject and number as evidence.
+SMTP credentials and Docker Hub credentials must be stored in Jenkins, never committed to the repository.
+
+## Jenkins pipeline stages
+
+The `Jenkinsfile` performs the following stages:
+
+1. Checkout repository source
+2. Compile and package the Maven application
+3. Run tests and publish JUnit XML results
+4. Build the Docker image
+5. Push the versioned image and `latest` tag to Docker Hub on `main`
+6. Deploy with Docker Compose
+7. Wait for the calculator and Nginx health checks
+8. Send success or failure notifications by email
+
+GitHub API rate limits can delay branch indexing when Jenkins uses anonymous GitHub access. Authenticate the GitHub branch source with a GitHub credential to avoid most anonymous-rate-limit delays.
