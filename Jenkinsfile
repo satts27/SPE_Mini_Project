@@ -76,21 +76,19 @@ pipeline {
     post {
         success {
             catchError(buildResult: null, stageResult: 'SUCCESS') {
-                emailext(
+                mail(
                     to: "${env.NOTIFICATION_EMAIL}",
                     subject: "${env.JOB_NAME} #${env.BUILD_NUMBER}: SUCCESS",
-                    body: "Build: ${env.JOB_NAME}\nBuild Number: ${env.BUILD_NUMBER}\nStatus: SUCCESS\nBuild URL: ${env.BUILD_URL}",
-                    attachLog: false
+                    body: "Build: ${env.JOB_NAME}\nBuild Number: ${env.BUILD_NUMBER}\nStatus: SUCCESS\nBuild URL: ${env.BUILD_URL}"
                 )
             }
         }
         failure {
             catchError(buildResult: null, stageResult: 'SUCCESS') {
-                emailext(
+                mail(
                     to: "${env.NOTIFICATION_EMAIL}",
                     subject: "${env.JOB_NAME} #${env.BUILD_NUMBER}: FAILURE",
-                    body: "Build: ${env.JOB_NAME}\nBuild Number: ${env.BUILD_NUMBER}\nStatus: FAILURE\nBuild URL: ${env.BUILD_URL}",
-                    attachLog: false
+                    body: "Build: ${env.JOB_NAME}\nBuild Number: ${env.BUILD_NUMBER}\nStatus: FAILURE\nBuild URL: ${env.BUILD_URL}"
                 )
             }
         }

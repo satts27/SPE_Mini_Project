@@ -122,10 +122,11 @@ The declarative `Jenkinsfile` builds and tests every branch and pull request, ar
 4. Create a **Multibranch Pipeline** job for this GitHub repository. Configure it to discover branches and pull requests, and ensure it loads the `Jenkinsfile` from each branch.
 5. Configure the GitHub webhook to notify Jenkins of pushes and pull requests, or configure periodic multibranch indexing as a fallback.
 6. Ensure the Jenkins agent can run Docker and Docker Compose v2, and can bind host port 8082. The deployment runs on that agent's Docker host. Jenkins itself can continue using port 8080.
-7. Configure Jenkins SMTP so it can send mail:
-   - In **Manage Jenkins → System → Extended E-mail Notification**, set SMTP server `smtp.gmail.com`, SMTP port `465`, enable SSL, and add your Gmail username and app password.
-   - In the Jenkins Mailer section, enter the same Gmail address and configure `smtp.gmail.com` with port `465` and SSL.
-   - Create a Gmail **App Password** from Google's account security page. Do not use your normal Gmail password or store the password in Git.
+7. Configure Jenkins SMTP in **Manage Jenkins → System → E-mail Notification**:
+   - Enter SMTP server `smtp.gmail.com`, SMTP port `465`, and enable SSL.
+   - Enter Gmail credentials and a Gmail App Password in the Jenkins Mailer Advanced settings.
+   - Create a Gmail App Password from Google's account security page. Do not use your normal Gmail password or store the password in Git.
+   - Send a test email before building the pipeline. The pipeline uses the Jenkins built-in `mail()` step rather than Extended E-mail Notification.
    - The pipeline sends success and failure notifications to `suryasatishganiga@gmail.com` by default. An optional Jenkins environment variable named `NOTIFICATION_EMAIL` can override that address.
 8. In GitHub, protect `main` by requiring pull requests before merge. Once Jenkins status checks are publishing to GitHub, require the Jenkins check before allowing a merge. Keep deployment credentials in Jenkins, never in the repository.
 
