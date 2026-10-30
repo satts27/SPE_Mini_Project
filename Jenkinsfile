@@ -1,11 +1,3 @@
-﻿def sendBuildNotification(String result) {
-    def recipient = (env.NOTIFICATION_EMAIL ?: 'suryasatishganiga@gmail.com').trim()
-    emailext(to: recipient,
-             subject: "${env.JOB_NAME} #${env.BUILD_NUMBER}: ${result}",
-             body: "${env.JOB_NAME} build #${env.BUILD_NUMBER} finished with ${result}.\n${env.BUILD_URL}",
-             attachLog: result == 'FAILURE')
-}
-
 pipeline {
     agent any
 
@@ -17,6 +9,7 @@ pipeline {
     environment {
         DOCKERHUB_REPOSITORY = 'satts27/spe-calculator'
         DOCKERHUB_CREDENTIALS_ID = 'dockerhub-credentials'
+        NOTIFICATION_EMAIL = 'suryasatishganiga@gmail.com'
     }
 
     stages {
@@ -81,8 +74,22 @@ pipeline {
     }
 
     post {
-        success { script { sendBuildNotification('SUCCESS') } }
-        failure { script { sendBuildNotification('FAILURE') } }
+        success {
+            emailext(
+                to: "${env.NOTIFICATION_EMAIL}",
+                subject: "${env.JOB_NAME} #${env.BUILD_NUMBER}: SUCCESS",
+                body: "Build: ${env.JOB_NAME}\nBuild Number: ${env.BUILD_NUMBER}\nStatus: SUCCESS\nBuild URL: ${env.BUILD_URL}",
+                attachLog: false
+            )
+        }
+        failure {
+            emailext(
+                to: "${env.NOTIFICATION_EMAIL}",
+                subject: "${env.JOB_NAME} #${env.BUILD_NUMBER}: FAILURE",
+                body: "Build: ${env.JOB_NAME}\nBuild Number: ${env.BUILD_NUMBER}\nStatus: FAILURE\nBuild URL: ${env.BUILD_URL}",
+                attachLog: true
+            )
+        }
         always { cleanWs() }
     }
 }
