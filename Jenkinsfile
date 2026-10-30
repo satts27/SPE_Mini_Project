@@ -1,4 +1,4 @@
-﻿def notify(String result) {
+﻿def sendBuildNotification(String result) {
     def recipient = (env.NOTIFICATION_EMAIL ?: 'suryasatishganiga@gmail.com').trim()
     emailext(to: recipient,
              subject: "${env.JOB_NAME} #${env.BUILD_NUMBER}: ${result}",
@@ -81,8 +81,8 @@ pipeline {
     }
 
     post {
-        success { script { notify('SUCCESS') } }
-        failure { script { notify('FAILURE') } }
+        success { script { sendBuildNotification('SUCCESS') } }
+        failure { script { sendBuildNotification('FAILURE') } }
         always { cleanWs() }
     }
 }
